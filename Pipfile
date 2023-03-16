@@ -9,6 +9,7 @@ name = "pypi"
 pre-commit = "*"
 flake8 = "*"
 black = "*"
+isort = "*"
 
 [requires]
 python_version = "3.9"
