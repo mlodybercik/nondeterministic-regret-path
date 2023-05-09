@@ -1,3 +1,3 @@
-import solver
+import salesman
 
-print(solver)
+print(salesman)
