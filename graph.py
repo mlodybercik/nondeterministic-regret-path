@@ -14,15 +14,19 @@ class Graph:
     def __init__(self):
         self.nodes = set()
         self.edges = []
+        self.connections = {}
 
     def add_node(self, node):
         self.nodes.add(node)
+        self.connections[node] = []
 
     def add_edge(self, node1, node2, min_length, max_length):
         self.nodes.add(node1)
         self.nodes.add(node2)
         edge = Edge(node1, node2, min_length, max_length)
         self.edges.append(edge)
+        self.connections[node1].append(node2)
+        self.connections[node2].append(node1)
 
     def get_edges(self, node):
         return [edge for edge in self.edges if edge.node1 == node or edge.node2 == node]
@@ -51,3 +55,6 @@ if __name__ == '__main__':
 
     for edge in graph.get_edges("A"):
         print(f"Długość krawędzi między {edge.node1} i {edge.node2}: {edge.get_length()}")
+
+    print(graph.edges[0].node1)
+    print(graph.connections)

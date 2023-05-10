@@ -4,9 +4,9 @@ from graph import Graph, Edge
 
 
 def spring_embedder(graph : Graph, k=0.5, c=0.1, max_iterations=1000):
-    dict_nodes = dict([*enumerate(graph.nodes)])
-    n = len(dict_nodes)  
-    # losowe położenia wierzchołków
+    graph = Graph.connections
+    n = len(graph)  # liczba wierzchołków w grafie
+    # inicjalizacja losowymi położeniami wierzchołków
     positions = {}
     for i in range(n):
         positions[i] = (random.random(), random.random())
@@ -17,11 +17,11 @@ def spring_embedder(graph : Graph, k=0.5, c=0.1, max_iterations=1000):
         forces = {}
         for i in range(n):
             forces[i] = [0, 0]
-            for j in dict_nodes:
+            for j in graph[i]:
                 dx = positions[j][0] - positions[i][0]
                 dy = positions[j][1] - positions[i][1]
                 distance = math.sqrt(dx*dx + dy*dy)
-                force = k * (distance - 1) / (distance + 0.0001)
+                force = k * (distance - 1) / distance
                 forces[i][0] += force * dx
                 forces[i][1] += force * dy
 
@@ -41,7 +41,7 @@ def spring_embedder(graph : Graph, k=0.5, c=0.1, max_iterations=1000):
         for i in range(n):
             positions[i] = (positions[i][0] + forces[i][0], positions[i][1] + forces[i][1])
 
-    return {dict_nodes[i] :positions[i] for i in range(n)}
+    return positions
 
 
 if __name__ == '__main__':
