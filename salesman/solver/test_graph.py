@@ -53,7 +53,9 @@ class TestGraph(unittest.TestCase):
 
         self.assertNotIn(nodeD, neighbours)
 
-    # def test_ws_model(self):
-    #     graph = NDGraph.watts_strogatz(20, 0.5, 10)
-    #     for edge in graph.edges:
-    #         print(f"({edge.source.name}, {edge.target.name}),", end=" ")
+    def test_ws_model(self):
+        graph = NDGraph.watts_strogatz(6, 0.5, 2)
+        for edge in graph.edges:
+            print(f"({edge.source.name}, {edge.target.name}),", end=" ")
+        print()
+        print({int(i.name): v for i, v in graph.get_spring_layout(max_iterations=100).items()})

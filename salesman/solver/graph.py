@@ -22,6 +22,9 @@ class NDNode:
     def __delitem__(self, *a):
         return self.params.__delitem__(*a)
 
+    def __repr__(self) -> str:
+        return f"<{__class__.__name__} name={self.name}>"
+
     def __hash__(self):
         return hash(self.name)
 
@@ -63,6 +66,9 @@ class NDEdge:
     def __hash__(self):
         # nie wiem czy nie lepiej zostawić tu samo dodawanie
         return (hash(self.source) * hash(self.target)) % max_hash_size
+
+    def __repr__(self):
+        return f"<{__class__.__name__} source={self.source.name} target={self.target.name}>"
 
 
 class NDGraph:
@@ -119,8 +125,50 @@ class NDGraph:
     def get_nodes(self):
         return set(self.nodes.keys())
 
-    def get_spring_embedder_layout(self):
-        pass
+    def get_spring_layout(self, k=1e-3, max_iterations=1000):
+        positions = {}
+        length = len(self.nodes)
+        for i, node in enumerate(self.nodes.values()):
+            positions[node] = np.array([np.sin(2 * np.pi * i / length), np.cos(2 * np.pi * i / length)])
+
+        # pętla główna algorytmu
+        for _ in range(max_iterations):
+            # obliczanie sił między wierzchołkami połączonymi krawędzią
+            forces = {j: [0, 0] for j in self.nodes.values()}
+            for connection in self.edges:
+                node_a = connection.source
+                node_b = connection.target
+
+                d = positions[node_b] - positions[node_a]
+                distance = np.sqrt(np.sum(d * d))
+                desired = connection.length
+
+                f = -k * (distance - desired) / np.sqrt(distance + 1e-9)
+
+                forces[node_a] -= f * d / 2
+                forces[node_b] += f * d / 2
+
+            # aktualizacja położeń wierzchołków
+            for node in self.nodes.values():
+                positions[node] += forces[node]
+
+        min_pos = np.array([np.inf, np.inf])
+        max_pos = np.array([-np.inf, -np.inf])
+        for node in positions:
+            if min_pos[0] > positions[node][0]:
+                min_pos[0] = positions[node][0]
+            elif max_pos[0] < positions[node][0]:
+                max_pos[0] = positions[node][0]
+
+            if min_pos[1] > positions[node][1]:
+                min_pos[1] = positions[node][1]
+            elif max_pos[1] < positions[node][1]:
+                max_pos[1] = positions[node][1]
+
+        for node in positions:
+            positions[node] = (positions[node] - min_pos) / (max_pos - min_pos)
+
+        return positions
 
     @classmethod
     def barabasi_albert(cls, n: int, m: int):

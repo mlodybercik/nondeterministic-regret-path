@@ -5,7 +5,6 @@ from graph import Graph, Edge
 
 def spring_embedder(graph : Graph, k=0.5, c=0.1, max_iterations=1000):
     graph = graph.connections
-    n = len(graph)  # liczba wierzchołków w grafie
     # inicjalizacja losowymi położeniami wierzchołków
     positions = {}
     for i in graph:
