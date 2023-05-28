@@ -4,6 +4,10 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 
 
+def hash_nodes(source: "NDNode", target: "NDNode"):
+    return (hash(source) * hash(target)) % max_hash_size
+
+
 class NDNode:
     params: Dict[str, Any]
     name: str
@@ -65,7 +69,7 @@ class NDEdge:
 
     def __hash__(self):
         # nie wiem czy nie lepiej zostawić tu samo dodawanie
-        return (hash(self.source) * hash(self.target)) % max_hash_size
+        return hash_nodes(self.source, self.target)
 
     def __repr__(self):
         return f"<{__class__.__name__} source={self.source.name} target={self.target.name}>"

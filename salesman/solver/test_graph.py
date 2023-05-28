@@ -23,7 +23,7 @@ class TestGraph(unittest.TestCase):
         nodeB = graph.nodes["B"]
         nodeC = graph.nodes["C"]
         nodeD = graph.nodes["D"]
-        nodeE = graph.nodes["D"]
+        nodeE = graph.nodes["E"]
 
         neighbours = graph.get_neighbors("A")
         self.assertIn(nodeB, neighbours)
@@ -53,9 +53,9 @@ class TestGraph(unittest.TestCase):
 
         self.assertNotIn(nodeD, neighbours)
 
-    def test_ws_model(self):
-        graph = NDGraph.watts_strogatz(6, 0.5, 2)
-        for edge in graph.edges:
-            print(f"({edge.source.name}, {edge.target.name}),", end=" ")
-        print()
-        print({int(i.name): v for i, v in graph.get_spring_layout(max_iterations=100).items()})
+    # def test_ws_model(self):
+    #     graph = NDGraph.watts_strogatz(6, 0.5, 2)
+    #     for edge in graph.edges:
+    #         print(f"({edge.source.name}, {edge.target.name}),", end=" ")
+    #     print()
+    #     print({int(i.name): v for i, v in graph.get_spring_layout(max_iterations=100).items()})

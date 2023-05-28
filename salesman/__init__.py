@@ -1,6 +1,7 @@
 import logging
 
 from .solver.graph import NDEdge, NDGraph, NDNode
+from .solver.solver import RegretSolver
 from .viewer.window import Window
 
 logger = logging.getLogger()
@@ -15,4 +16,4 @@ ch.setFormatter(formatter)
 
 logger.addHandler(ch)
 
-__all__ = [NDEdge, NDGraph, NDNode, Window]
+__all__ = ["NDEdge", "NDGraph", "NDNode", "Window", "RegretSolver"]
