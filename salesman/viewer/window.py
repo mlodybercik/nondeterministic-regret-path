@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 pg.init()
 
-FPS = 60
+FPS = 120
 
 
 class Window:
@@ -35,7 +35,7 @@ class Window:
     def loop(self):
         screen = pg.display.set_mode(self.size)
         clock = pg.time.Clock()
-        drawer = Draw(self.graph, self.graph.get_spring_layout())
+        drawer = Draw(self.graph, self.graph.get_spring_layout(0.01, 100))
         generator = self.solver.iterator()
         path, value = next(generator)
         best_path = value
@@ -51,7 +51,12 @@ class Window:
                 if value < best_path:
                     pg.display.set_caption(f"best path: {value}")
                     best_path = value
-                    logger.info("Found better   path")
+                    min_path = sum([edge.min_length for edge in path])
+                    real_path = sum([edge.length for edge in path])
+                    max_path = sum([edge.max_length for edge in path])
+                    logger.info(
+                        f"Found better path ||{real_path:02.2f}||, ||{min_path:02.2f}||min ||{max_path:02.2f}||max"
+                    )
                     space_held = False
                 drawer.set_overrides(path)
             screen.blit(self.render_frame(drawer), (0, 0))

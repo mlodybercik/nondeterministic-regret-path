@@ -1,8 +1,6 @@
 import random
 import typing as T
 
-from . import logger
-
 if T.TYPE_CHECKING:
     from .graph import NDEdge, NDGraph, NDNode
 
@@ -55,13 +53,14 @@ class RegretSolver:
         # min max f(x, s)
         #  x  s∈S
         # gdzie szukamy samej najkrótszej możliwe ścieżki
+        best_min_path = 1e10
         while True:
             path = generate_random_path(self.graph, self.start_node, self.end_node)
             min_path = sum([edge.min_length for edge in path])
-            max_path = sum([edge.max_length for edge in path])
-            real_path = sum([edge.length for edge in path])
+            # real_path = sum([edge.length for edge in path])
+            # max_path = sum([edge.max_length for edge in path])
+            if best_min_path > min_path:
+                best_min_path = min_path
 
-            logger.debug(
-                f"Found path iters |{len(path)}|, ||{real_path:.2f}||, ||{min_path:.2f}||min, ||{max_path:.2f}||max"
-            )
-            yield path, max_path - min_path + real_path
+            # yield path, ((max_path + min_path) / 2) - best_min_path
+            yield path, min_path
