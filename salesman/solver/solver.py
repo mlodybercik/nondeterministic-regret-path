@@ -46,12 +46,16 @@ class RegretSolver:
     def get_estimated_minimum(self):
         # czas ucieka, poratuje sie nx'em żeby znaleźć ścieżki. niech mnie ławryn ma w opiece 🙏
 
-        n = [
-            min((i.min_length for i in self.graph.scenario[scenario].values()))
+        minimum = [
+            min((i.max_length for i in self.graph.scenario[scenario].values()))
+            for scenario in range(len(self.graph.scenario))
+        ]
+        maximum = [
+            max((i.max_length for i in self.graph.scenario[scenario].values()))
             for scenario in range(len(self.graph.scenario))
         ]
         j = nx.shortest_path_length(self.nxgraph, self.start_node.name, self.end_node.name)
-        return [i * j for i in n], j
+        return minimum, maximum, j
 
     def get_paths(self, max_len=None):
         if max_len:
