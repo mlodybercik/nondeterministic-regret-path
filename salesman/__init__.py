@@ -2,7 +2,8 @@ import logging
 
 from .solver.graph import NDEdge, NDGraph, NDNode
 from .solver.solver import RegretSolver
-from .viewer.window import Window
+
+# from .viewer.window import Window
 
 logger = logging.getLogger()
 

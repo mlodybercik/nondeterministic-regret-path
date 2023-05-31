@@ -1,4 +1,4 @@
-# nondeterministic-salesman
+# nondeterministic-regret-path
 
 https://hal.science/hal-00158652/document
 

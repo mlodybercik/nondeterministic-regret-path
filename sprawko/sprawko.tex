@@ -1,0 +1,119 @@
+\documentclass[10pt]{article}
+
+\usepackage{polski}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{subfigure}
+\usepackage[font=footnotesize]{caption}
+\usepackage{geometry}
+% \usepackage{indentfirst}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+
+
+\captionsetup{hypcap=false}
+\graphicspath{{images/}}
+\newgeometry{tmargin=4cm, bmargin=4cm, lmargin=3.2cm, rmargin=3.2cm}
+\pagestyle{fancy}
+\def\nl{\\\hline}
+
+\begin{document}
+\begin{titlepage}
+  \begin{center}
+    \LARGE \textsc{Politechnika Wrocławska}\\
+    \vspace*{0.2cm}
+    \Large \textsc{Wydział Informatyki i Telekomunikacji}\\
+    \vspace*{0.4cm}
+    \includegraphics[width=0.2\textwidth]{figures/WITlogo.png}\\
+    \vspace*{0.2cm}
+    \vspace*{2cm}
+
+    \centerline{\rule{\textwidth}{1.2pt}}
+    \vspace{0.4cm}
+    \Huge\textbf{Systemy inteligentne}
+    \centerline{\rule{\textwidth}{1.2pt}}
+    \vspace{1cm}
+    \LARGE Sprawozdanie z projektu\\
+    \vspace{3.5cm}
+    \textsc{Autorzy}\\
+    \vspace{0.2cm}
+    \textbf{Przemysław Barcicki, 260324}\\
+    \vspace{0.1cm}
+    \textbf{Dominik Lenio, 260274}\\
+    \vspace{0.1cm}
+    kierunek: \textbf{Inżynieria systemów}
+
+    \vspace*{\fill}
+    \Large \textit{30 maja 2023}
+
+  \end{center}
+\end{titlepage}
+
+\begin{abstract}
+  W ramach projektu przeprowadzono porównanie skuteczności algorytmów min-max oraz min-max z żalem w celu znalezienia najkrószej ścieżki między dwoma wierzchołkami w grafie nieskierowanym, gdzie długość krawędzi podana jest jako możliwy zakres w postaci rozkładu równomiernego. Algorytm podczas szukania najlepszej ścieżki ma wgląd tylko w informację o minimum i maksimum z rozkładu.
+\end{abstract}
+
+\section{Wstęp -- opis problemu}
+\label{sec:wstep}
+Optymalizacja jest aktualnie dziedziną na której polega cały świat. Pozwala ona na przykładowo minimalizację kosztów prowadzenia działalności poprzez lepszy dobór dostawców czy też zmniejszanie czasu potrzebnego na wykonanie skomplikowanych procesów poprzez ich lepsze kolejkowanie. Znalezienie dobrego sposobu na optymalizację danego procesu, w szczególności w zmiennych warunkach, może mówić o istnieniu danego podmiotu na rynku.
+
+Optymalizacja procesów w przypadku gdzie dany proces ma z góry określone zmienne nie jest żadnym problemem. Istnieje bardzo dużo różnych algrytmów dla różnych problemów które bardzo dobrze sobie radzą z optymalizacją takich zadań. Problem pojawia się jednak gdy w optymalizacji mamy do czynienia ze zmienną, która może przyjąć pewien zakres wartości. Gotowe algorytmy mogą radzić sobie z szukaniem takich rozwiązań, ale w żaden sposób nie korzystamy z informacji o rozkładzie, co może przekładać się na gorsze wyniki.
+
+Celem sprawozdania jest przeprowadzenie analizy oraz opisanie wyników działania algorytmów min-max oraz min-max regret dla problemu szukania ścieżki pomiędzy dwoma wierzchołkami w nieskierowanym grafie, gdzie długości krawędzi dane są w postaci możliwych zakresów dodatnich wartości przedstawiających rozkład równomierny.
+
+\section{Definicja problemu}
+Znając aktualny scenariusz $s \in S$ określony za pomocą informacji o nieskierowanym grafie wejściowym $G = (V, E)$ oraz zakresach odległości
+\begin{eqnarray*}
+  O = E \rightarrow \left\{(\overline o, \underline o): 0 < \overline o \leq \widetilde O \leq \underline o < \infty\right\},
+\end{eqnarray*}
+
+szukamy takiego rozwiązania $x = \left(e_1, e_2, \dots, e_n\right)$, $x \in X$ które będzie minimalizować długość trasy od źródła do celu, $v_{start}$ do $v_{end}$, którą możemy zdefiniować jako:
+\begin{equation}
+  \min \sum_{i=1}^{n} \widetilde O_{xn},
+\end{equation}
+
+Korzystając z tych definicji możemy okreslić dwa różne podejścia optymalizacyjne, jedno klasyczne korzystające z samej informacji o aktualnej trasie oraz drugie, korzystające z funkcji żalu do określenia najlepszej trasy.
+
+\subsection{Min-max}
+Dla danego rozwiązania $x \in X$ i danego scenariusza $s \in S$ możemy określić pewną funkcję $val(x, s)$ oceniającą jak dobre jest dane rozwiązanie. Funckja ta będzie sumą pewnej długości opisującej daną ścieżkę. Dla danej trasy możemy rozpatrywać trzy różne wartości, są to: wartość oczekiwana danej trasy, teoretycznie minimalna i teoretycznie maksymalna długość trasy.
+
+\begin{eqnarray}
+  \widehat{val}(x, s) = \sum^{n}_{i=1}& \frac{1}{2}\left(\overline o_i + \underline o_i\right), \\
+  \overline{val}(x, s) = \sum^{n}_{i=1}& \overline o_i, \\
+  \underline{val}(x, s) = \sum^{n}_{i=1}& \underline o_i
+\end{eqnarray}
+\begin{equation}
+  \min_{x \in X} \max_{s \in S} val(x, s) \quad \footnote{Dla takiego podejścia można analogiczne określić funkcję maksymalizującą zadaną wartość.}
+\end{equation}
+
+\subsection{Min-max regret}
+Metoda min-max z żalem jest bardzo podobna do tej metody bez. Różnica to wprowadzenie pewnego dodatkowego elementu określanego jako żal $val^*_s$, który zamienia nam wartość liczonej funkcji z samej odległości między wierzchołkami na odchylenie od najlepszego możliwego rozwiązania dla danego scenariusza. Bardzo często zdarza się sytuacja, że samo określenie teoretycznie najlepszej ścieżki jest bardzo trudne, więc często korzysta się w tym miejscu z pewnego oszacowania.
+
+\begin{equation}
+  \min_{x \in X} \max_{s \in S} val(x, s) - val^*_s
+\end{equation}
+
+\section{Metodyka badań}
+Analizie zostały poddane
+
+
+\section{Wnioski}
+asd
+% \footnote{Określenie najlepszej trasy w grafie nieskierowanym należy do problemu NP-trudnego, dlatego w algorytmie dynamicznie będę}
+
+\newpage
+\appendix
+
+\section{Kod źródłowy}
+Kody źródłowe umieszczone zostały w repozytorium GitHub:
+
+\noindent \url{https://github.com/mlodybercik/nondeterministic-regret-path}.
+
+\begin{thebibliography}{9}
+    \bibitem{bib:minmax}
+    Hassene Aissi, Cristina Bazgan, Daniel Vanderpooten.
+    Min-max and min-max regret versions of some combinatorial optimization problems: a survey. (2007, ffhal-00158652)
+
+\end{thebibliography}
+
+\end{document}

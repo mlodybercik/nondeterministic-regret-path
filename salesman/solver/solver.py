@@ -1,8 +1,31 @@
+import math
 import random
 import typing as T
+from itertools import tee
+
+import networkx as nx
 
 if T.TYPE_CHECKING:
     from .graph import NDEdge, NDGraph, NDNode
+
+
+def pairwise(iterable):
+    # pairwise('ABCDEFG') --> AB BC CD DE EF FG
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+
+def real_path(path):
+    return sum([edge.length for edge in path])
+
+
+def min_path(path):
+    return sum([edge.min_length for edge in path])
+
+
+def max_path(path):
+    return sum([edge.max_length for edge in path])
 
 
 def get_possible_neighbours(neighbour_connections: T.Sequence["NDEdge"], visited: T.Sequence["NDNode"]):
@@ -44,6 +67,32 @@ class RegretSolver:
         assert start.name in graph.nodes
         assert end.name in graph.nodes
 
+    def get_estimated_minimum(self):
+        # czas ucieka, poratuje sie nx'em żeby znaleźć ścieżki. niech mnie ławryn ma w opiece 🙏
+        graph = nx.Graph()
+        for edge in self.graph.edges:
+            graph.add_edge(edge.source.name, edge.target.name)
+        n = sum((i.min_length for i in self.graph.edges)) / len(self.graph.edges)
+        j = nx.shortest_path_length(graph, self.start_node.name, self.end_node.name)
+        return n * j, j
+
+    def get_paths(self, max_len=None):
+        if max_len:
+            max_len = math.floor(max_len * 1.1)
+        graph = nx.Graph()
+        for edge in self.graph.edges:
+            graph.add_edge(edge.source.name, edge.target.name)
+        for item in nx.all_simple_paths(graph, self.start_node.name, self.end_node.name, cutoff=max_len):
+            path = []
+            for source, target in pairwise(item):
+                for edge in self.graph.edges:
+                    if (edge.source.name == source and edge.target.name == target) or (
+                        edge.source.name == target and edge.target.name == source
+                    ):
+                        break
+                path.append(edge)
+            yield path
+
     def iterator(self):
         # min ( max { f(x, s) - f*(s) } )
         #  x    s∈S     ^decyzja ^oszacowanie
@@ -53,14 +102,16 @@ class RegretSolver:
         # min max f(x, s)
         #  x  s∈S
         # gdzie szukamy samej najkrótszej możliwe ścieżki
+
         best_min_path = 1e10
         while True:
             path = generate_random_path(self.graph, self.start_node, self.end_node)
-            min_path = sum([edge.min_length for edge in path])
-            # real_path = sum([edge.length for edge in path])
-            # max_path = sum([edge.max_length for edge in path])
+            min_path, max_path = calculate_single(path)
             if best_min_path > min_path:
                 best_min_path = min_path
 
-            # yield path, ((max_path + min_path) / 2) - best_min_path
             yield path, min_path
+
+
+def calculate_single(path: T.Sequence["NDEdge"]):
+    return min_path(path), max_path(path)

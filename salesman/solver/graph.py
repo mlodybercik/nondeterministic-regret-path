@@ -62,10 +62,9 @@ class NDEdge:
 
     @classmethod
     def from_random(cls, source: "NDNode", target: "NDNode", scale: float):
-        if scale < 1:
-            raise ValueError("scale cant be less than or equal to 1")
-        min_value, max_value = sorted([np.random.uniform(1, scale), np.random.uniform(1, scale)])
+        min_value, max_value = sorted([scale * np.random.uniform(0, 1), scale * np.random.uniform(0, 1)])
         return cls.from_min_max(source, target, min_value, max_value)
+        # return cls.from_min_max(source, target, 0.95, 1.05)
 
     def __hash__(self):
         # nie wiem czy nie lepiej zostawić tu samo dodawanie
@@ -179,16 +178,14 @@ class NDGraph:
         raise NotImplementedError()
 
     @classmethod
-    def watts_strogatz(cls, n: int, p: float, lengths_scale: int):
+    def watts_strogatz(cls, n: int, p: float, lengths_scale: int, k=2):
         assert n > 5
         nodes = [NDNode(str(i)) for i in range(n)]
         edges: List[NDEdge] = []
         for i, node in enumerate(nodes):
-            edges.append(NDEdge.from_random(node, nodes[i - 2], lengths_scale))
-            edges.append(NDEdge.from_random(node, nodes[i - 1], lengths_scale))
-            # preventing loop on node
-            edges.append(NDEdge.from_random(node, nodes[(i + 1) % n], lengths_scale))
-            edges.append(NDEdge.from_random(node, nodes[(i + 2) % n], lengths_scale))
+            for j in range(1, k + 1):
+                edges.append(NDEdge.from_random(node, nodes[i - j], lengths_scale))
+                edges.append(NDEdge.from_random(node, nodes[(i + j) % n], lengths_scale))
 
         for i in range(n):
             if np.random.random() > p:

@@ -13,6 +13,7 @@ pre-commit = "*"
 flake8 = "*"
 black = "*"
 isort = "*"
+ipykernel = "*"
 
 [requires]
 python_version = "3.9"
