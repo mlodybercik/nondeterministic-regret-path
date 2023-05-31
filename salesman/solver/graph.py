@@ -1,5 +1,6 @@
+from copy import deepcopy
 from sys import maxsize as max_hash_size
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -45,42 +46,42 @@ class NDEdge:
     def max_length(self):
         return self.possible_length[1]
 
-    def __init__(self, source: "NDNode", target: "NDNode", min_length: float, max_length: float, length: float):
+    def __init__(self, source: "NDNode", target: "NDNode", scale: float):
         self.source = source
         self.target = target
-        if not (max_length > min_length):
-            raise ValueError(f"max < min, {max_length} < {min_length}")
-        if not (length >= min_length and length <= max_length):
-            raise ValueError(f"length not between min and max, {min_length} >= {length} >= {max_length}")
+        self.scale = scale
+        self.new()
 
-        self.possible_length = (min_length, max_length)
-        self.length = length
-
-    @classmethod
-    def from_min_max(cls, source: "NDNode", target: "NDNode", min_length: float, max_length: float):
-        return cls(source, target, min_length, max_length, np.random.uniform(min_length, max_length))
-
-    @classmethod
-    def from_random(cls, source: "NDNode", target: "NDNode", scale: float):
-        min_value, max_value = sorted([scale * np.random.uniform(0, 1), scale * np.random.uniform(0, 1)])
-        return cls.from_min_max(source, target, min_value, max_value)
-        # return cls.from_min_max(source, target, 0.95, 1.05)
+    def new(self):
+        self.possible_length = sorted([self.scale * np.random.uniform(0, 1), self.scale * np.random.uniform(0, 1)])
+        self.length = np.random.uniform(self.min_length, self.max_length)
 
     def __hash__(self):
         # nie wiem czy nie lepiej zostawić tu samo dodawanie
         return hash_nodes(self.source, self.target)
 
     def __repr__(self):
-        return f"<{__class__.__name__} source={self.source.name} target={self.target.name}>"
+        return f"<{__class__.__name__} {self.source.name}-{self.target.name}>"
 
 
 class NDGraph:
     nodes: Dict[str, NDNode]
-    edges: Set[NDEdge]
+    scenario: List[Dict[int, NDEdge]]
+    current_scenario: int
 
     def __init__(self):
         self.nodes = dict()
-        self.edges = set()
+        self.scenario = [dict()]
+        self.current_scenario = 0
+
+    @property
+    def edges(self):
+        return self.scenario[self.current_scenario]
+
+    def create_scenario(self):
+        copy = deepcopy(self.scenario[0])
+        [edge.new() for edge in copy.values()]
+        self.scenario.append(copy)
 
     def add_from_edge(self, edge: "NDEdge"):
         # dodajemy do naszej bazy wierzchołki, jeśli one już istnieją to to nic nie zmieni
@@ -91,13 +92,12 @@ class NDGraph:
         # hashujemy [dodając|mnożąc przez siebie] hashe wierzchołków więc jesteśmy
         # w stanie sprawdzić czy dane połączenie już istnieje, jeśli to istnieje
         # to set.add nic nie zmieni
-        self.edges.add(edge)
+        self.edges[hash_nodes(edge.source, edge.target)] = edge
 
     def add_edge(
         self,
         source: Union["NDNode", str],
         target: Union["NDNode", str],
-        lengths: Optional[Tuple[float, float]] = None,
         scale: Optional[float] = None,
     ):
         # sprawdz czy dane wierzcholki istnieja jak tak to wybierz ze znanych
@@ -109,9 +109,7 @@ class NDGraph:
         # stwórz wierzchołki wg zadanych parametrów
         # jeśli podane jest min/max to zrób według tego
         # wpw samemu stwórz skalę
-        if lengths:
-            return self.add_from_edge(NDEdge.from_min_max(source, target, lengths[0], lengths[1]))
-        elif scale:
+        if scale:
             return self.add_from_edge(NDEdge.from_random(source, target, scale))
         raise ValueError("none of the required params passed")
 
@@ -184,8 +182,8 @@ class NDGraph:
         edges: List[NDEdge] = []
         for i, node in enumerate(nodes):
             for j in range(1, k + 1):
-                edges.append(NDEdge.from_random(node, nodes[i - j], lengths_scale))
-                edges.append(NDEdge.from_random(node, nodes[(i + j) % n], lengths_scale))
+                edges.append(NDEdge(node, nodes[i - j], lengths_scale))
+                edges.append(NDEdge(node, nodes[(i + j) % n], lengths_scale))
 
         for i in range(n):
             if np.random.random() > p:
