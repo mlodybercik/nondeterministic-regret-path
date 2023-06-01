@@ -58,10 +58,10 @@ class RegretSolver:
         if len(self.graph.nodes) > 7:
             logger.warning("Ławryn mówił, że to może długo zająć D:")
 
-        n_nodes = len(self.graph.nodes)
+        n_edges = len(self.graph.edges)
 
-        for iteration in range(2**n_nodes):
-            yield tuple(self.edges_bimap[i].possible_length[bool(iteration & (2**i))] for i in range(n_nodes))
+        for iteration in range(2**n_edges):
+            yield tuple(self.edges_bimap[i].possible_length[bool(iteration & (2**i))] for i in range(n_edges))
 
     def get_path_scenarios(self, path: T.Sequence["NDEdge"]):
         path_length = len(path)
