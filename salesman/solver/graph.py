@@ -1,12 +1,11 @@
-from copy import deepcopy
 from sys import maxsize as max_hash_size
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
 
 def hash_nodes(source: "NDNode", target: "NDNode"):
-    return (hash(source) * hash(target)) % max_hash_size
+    return (hash(source) + hash(target)) % max_hash_size
 
 
 class NDNode:
@@ -15,7 +14,7 @@ class NDNode:
     __slots__ = ["params", "name"]
 
     def __init__(self, name: str, **params: Dict[str, Any]) -> None:
-        self.name = name
+        self.name = str(name)
         self.params = params
 
     def __getitem__(self, *a):
@@ -36,7 +35,6 @@ class NDNode:
 
 class NDEdge:
     possible_length: Tuple[float, float]
-    length: float
 
     @property
     def min_length(self):
@@ -46,15 +44,14 @@ class NDEdge:
     def max_length(self):
         return self.possible_length[1]
 
-    def __init__(self, source: "NDNode", target: "NDNode", scale: float):
+    def __init__(self, source: "NDNode", target: "NDNode", possible_length: Tuple[float, float]):
         self.source = source
         self.target = target
-        self.scale = scale
-        self.new()
+        self.possible_length = possible_length
 
-    def new(self):
-        self.possible_length = sorted([self.scale * np.random.uniform(0, 1), self.scale * np.random.uniform(0, 1)])
-        self.length = np.random.uniform(self.min_length, self.max_length)
+    @classmethod
+    def from_random(cls, source: "NDNode", target: "NDNode", scale: float):
+        return cls(source, target, sorted([scale * np.random.uniform(0, 1), scale * np.random.uniform(0, 1)]))
 
     def __hash__(self):
         # nie wiem czy nie lepiej zostawić tu samo dodawanie
@@ -65,23 +62,12 @@ class NDEdge:
 
 
 class NDGraph:
-    nodes: Dict[str, NDNode]
-    scenario: List[Dict[int, NDEdge]]
-    current_scenario: int
+    nodes: Dict[int, NDNode]
+    edges: Dict[int, NDEdge]
 
     def __init__(self):
         self.nodes = dict()
-        self.scenario = [dict()]
-        self.current_scenario = 0
-
-    @property
-    def edges(self):
-        return self.scenario[self.current_scenario]
-
-    def create_scenario(self):
-        copy = deepcopy(self.scenario[0])
-        [edge.new() for edge in copy.values()]
-        self.scenario.append(copy)
+        self.edges = dict()
 
     def add_from_edge(self, edge: "NDEdge"):
         # dodajemy do naszej bazy wierzchołki, jeśli one już istnieją to to nic nie zmieni
@@ -95,31 +81,26 @@ class NDGraph:
         self.edges[hash_nodes(edge.source, edge.target)] = edge
 
     def add_edge(
-        self,
-        source: Union["NDNode", str],
-        target: Union["NDNode", str],
-        scale: Optional[float] = None,
+        self, source: Union["NDNode", int], target: Union["NDNode", int], scale: float = None, possible_lengths=None
     ):
         # sprawdz czy dane wierzcholki istnieja jak tak to wybierz ze znanych
         # wpw stwórz nowe
-        if isinstance(source, str):
+        if isinstance(source, int):
             source = self.nodes.get(source, NDNode(source))
-        if isinstance(target, str):
+        if isinstance(target, int):
             target = self.nodes.get(target, NDNode(target))
-        # stwórz wierzchołki wg zadanych parametrów
-        # jeśli podane jest min/max to zrób według tego
-        # wpw samemu stwórz skalę
         if scale:
             return self.add_from_edge(NDEdge.from_random(source, target, scale))
-        raise ValueError("none of the required params passed")
+        if possible_lengths:
+            return self.add_from_edge(NDEdge(source, target, possible_lengths))
 
-    def get_edges_of(self, node: Union[str, NDNode]):
-        if isinstance(node, str):
+    def get_edges_of(self, node: Union[int, NDNode]):
+        if isinstance(node, int):
             node = self.nodes[node]
         return {edge for edge in self.edges if edge.source == node or edge.target == node}
 
-    def get_neighbors(self, node: Union[str, NDNode]):
-        if isinstance(node, str):
+    def get_neighbors(self, node: Union[int, NDNode]):
+        if isinstance(node, int):
             node = self.nodes[node]
         return {(i.source if i.source != node else i.target) for i in self.get_edges_of(node)}
 
@@ -136,13 +117,13 @@ class NDGraph:
         for _ in range(max_iterations):
             # obliczanie sił między wierzchołkami połączonymi krawędzią
             forces = {j: [0, 0] for j in self.nodes.values()}
-            for connection in self.edges:
+            for connection in self.edges.values():
                 node_a = connection.source
                 node_b = connection.target
 
                 d = positions[node_b] - positions[node_a]
                 distance = np.sqrt(np.sum(d * d))
-                desired = connection.length
+                desired = sum(connection.possible_length) / 2
 
                 f = -k * (distance - desired) / np.sqrt(distance + 1e-9)
 
@@ -178,12 +159,12 @@ class NDGraph:
     @classmethod
     def watts_strogatz(cls, n: int, p: float, lengths_scale: int, k=2):
         assert n > 5
-        nodes = [NDNode(str(i)) for i in range(n)]
+        nodes = [NDNode(i) for i in range(n)]
         edges: List[NDEdge] = []
         for i, node in enumerate(nodes):
             for j in range(1, k + 1):
-                edges.append(NDEdge(node, nodes[i - j], lengths_scale))
-                edges.append(NDEdge(node, nodes[(i + j) % n], lengths_scale))
+                edges.append(NDEdge.from_random(node, nodes[i - j], lengths_scale))
+                edges.append(NDEdge.from_random(node, nodes[(i + j) % n], lengths_scale))
 
         for i in range(n):
             if np.random.random() > p:

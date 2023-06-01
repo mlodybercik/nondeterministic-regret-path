@@ -1,13 +1,23 @@
-import math
 import typing as T
 from itertools import tee
 
 import networkx as nx
 
+from . import logger
 from .graph import hash_nodes
 
 if T.TYPE_CHECKING:
-    from .graph import NDGraph, NDNode
+    from .graph import NDEdge, NDGraph, NDNode
+
+
+class BidirectionalDict(dict):
+    def __setitem__(self, key, val):
+        dict.__setitem__(self, key, val)
+        dict.__setitem__(self, val, key)
+
+    def __delitem__(self, key):
+        dict.__delitem__(self, self[key])
+        dict.__delitem__(self, key)
 
 
 def pairwise(iterable):
@@ -17,48 +27,44 @@ def pairwise(iterable):
     return zip(a, b)
 
 
-def calculate_path(graph: "NDGraph", path_in_nodes: T.Sequence["NDNode"]):
-    min_path = dict.fromkeys(range(len(graph.scenario)))
-    real_path = dict.fromkeys(range(len(graph.scenario)))
-    max_path = dict.fromkeys(range(len(graph.scenario)))
-    for scenario in min_path.keys():
-        min_path[scenario] = 0
-        real_path[scenario] = 0
-        max_path[scenario] = 0
-        for start, stop in pairwise(path_in_nodes):
-            min_path[scenario] += graph.scenario[scenario][hash_nodes(start, stop)].min_length
-            real_path[scenario] += graph.scenario[scenario][hash_nodes(start, stop)].length
-            max_path[scenario] += graph.scenario[scenario][hash_nodes(start, stop)].max_length
-    return min_path, real_path, max_path
-
-
 class RegretSolver:
     def __init__(self, graph: "NDGraph", start: "NDNode", end: "NDNode"):
         self.graph = graph
         self.nxgraph = nx.Graph()
         for edge in self.graph.edges.values():
-            self.nxgraph.add_edge(edge.source.name, edge.target.name)
+            self.nxgraph.add_edge(edge.source, edge.target)
         self.start_node = start
         self.end_node = end
+
+        self.edges_bimap = BidirectionalDict()
+        for i, edge in enumerate(self.graph.edges.values()):
+            self.edges_bimap[i] = edge
+
         assert start.name in graph.nodes
         assert end.name in graph.nodes
 
-    def get_estimated_minimum(self):
-        # czas ucieka, poratuje sie nx'em żeby znaleźć ścieżki. niech mnie ławryn ma w opiece 🙏
+    def nodes_to_path(self, path: T.Sequence[int]):
+        return [self.graph.edges[hash_nodes(x, y)] for x, y in pairwise(path)]
 
-        minimum = [
-            min((i.max_length for i in self.graph.scenario[scenario].values()))
-            for scenario in range(len(self.graph.scenario))
-        ]
-        maximum = [
-            max((i.max_length for i in self.graph.scenario[scenario].values()))
-            for scenario in range(len(self.graph.scenario))
-        ]
-        j = nx.shortest_path_length(self.nxgraph, self.start_node.name, self.end_node.name)
-        return minimum, maximum, j
+    def get_shortest_paths(self):
+        for item in nx.all_shortest_paths(self.nxgraph, self.start_node, self.end_node):
+            yield self.nodes_to_path(item)
 
-    def get_paths(self, max_len=None):
-        if max_len:
-            max_len = math.ceil(max_len * 1.1)
-        for item in nx.all_simple_paths(self.nxgraph, self.start_node.name, self.end_node.name, cutoff=max_len):
-            yield item
+    def get_paths(self):
+        for item in nx.all_simple_paths(self.nxgraph, self.start_node, self.end_node):
+            yield self.nodes_to_path(item)
+
+    def get_all_scenarios(self):
+        if len(self.graph.nodes) > 7:
+            logger.warning("Ławryn mówił, że to może długo zająć D:")
+
+        n_nodes = len(self.graph.nodes)
+
+        for iteration in range(2**n_nodes):
+            yield tuple(self.edges_bimap[i].possible_length[bool(iteration & (2**i))] for i in range(n_nodes))
+
+    def get_path_scenarios(self, path: T.Sequence["NDEdge"]):
+        path_length = len(path)
+
+        for iteration in range(2**path_length):
+            yield tuple(path[i].possible_length[~bool(iteration & (2**i))] for i in range(path_length))
