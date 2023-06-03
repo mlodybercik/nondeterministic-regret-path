@@ -126,7 +126,7 @@ class RegretSolver:
         n_edges = len(self.graph.edges)
         possibilities = (0, 1)
         # max_to_generate = round(np.power(n_edges, 4 / 5))
-        max_to_generate = n_edges
+        max_to_generate = 10 * n_edges
 
         for _ in range(max_to_generate):
             yield tuple(
