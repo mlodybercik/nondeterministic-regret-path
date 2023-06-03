@@ -3,9 +3,7 @@ from itertools import permutations
 import salesman.solver.solver as s
 from salesman.solver.graph import NDGraph, NDNode
 
-min_regret = 1e10
-
-# graph = NDGraph.watts_strogatz(10, 1, 1, 3)
+# graph = NDGraph.watts_strogatz(10, 1, 1, 2)
 # w_start = graph.nodes["0"]
 # w_end   = graph.nodes["5"]
 # solver = s.RegretSolver(graph, w_start, w_end)
@@ -47,8 +45,14 @@ solver = s.RegretSolver(graph, w0, w6)
 min_value = 1e10
 best_path = None
 
-scenarios = tuple(solver.get_all_scenarios())
-for path_A, path_B in permutations(solver.get_paths(), 2):
+scenarios = tuple(solver.generate_random_scenarios())
+# scenarios = tuple(solver.get_all_scenarios())
+# print(solver.sa_get_shortest_path(scenarios[0]))
+# x = solver.generate_random_path(solver.start_node, solver.end_node, set())
+
+# exit(-1)
+
+for path_A, path_B in permutations(solver.get_shortest_paths(), 2):
     max_regret = -1e10
     path = None
     for scenario in scenarios:
@@ -62,8 +66,9 @@ for path_A, path_B in permutations(solver.get_paths(), 2):
             path = path_A
 
     if min_value > max_regret:
+        print("found best solution", max_regret)
         min_value = max_regret
         best_path = path
 
-print(best_path)
-print(min_value)
+# print(best_path)
+# print(min_value)

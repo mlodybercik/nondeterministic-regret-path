@@ -49,6 +49,9 @@ class NDEdge:
         self.target = target
         self.possible_length = possible_length
 
+    def __contains__(self, other: "NDNode"):
+        return self.source == other or self.target == other
+
     @classmethod
     def from_random(cls, source: "NDNode", target: "NDNode", scale: float):
         return cls(source, target, sorted([scale * np.random.uniform(0, 1), scale * np.random.uniform(0, 1)]))
@@ -97,7 +100,7 @@ class NDGraph:
     def get_edges_of(self, node: Union[int, NDNode]):
         if isinstance(node, int):
             node = self.nodes[node]
-        return {edge for edge in self.edges if edge.source == node or edge.target == node}
+        return {edge for edge in self.edges.values() if edge.source == node or edge.target == node}
 
     def get_neighbors(self, node: Union[int, NDNode]):
         if isinstance(node, int):
