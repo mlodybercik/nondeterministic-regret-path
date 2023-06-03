@@ -79,18 +79,38 @@ class RegretSolver:
                 ret.append(next_edge.target)
         return ret
 
-    def get_shortest_paths(self):
-        for item in nx.all_shortest_paths(self.nxgraph, self.start_node, self.end_node):
+    def get_weight_in_scenario(self, scenario: T.Optional[T.Sequence[float]]):
+        def get_weights(node_A: "NDNode", node_B: "NDNode", _):
+            return scenario[self.edges_bimap[self.graph.edges[hash_nodes(node_A, node_B)]]]
+
+        return get_weights
+
+    def get_longest_weight_in_scenario(self):
+        def get_weights(node_A: "NDNode", node_B: "NDNode", _):
+            return self.edges_bimap[self.graph.edges[hash_nodes(node_A, node_B)]].max_length
+
+        return get_weights
+
+    def get_shortest_paths(self, scenario: T.Optional[T.Sequence[float]] = None):
+        if scenario:
+            scenario = self.get_weight_in_scenario(scenario)
+
+        for item in nx.shortest_simple_paths(self.nxgraph, self.start_node, self.end_node, scenario):
             yield self.nodes_to_path(item)
+
+    def get_shortest_longest_paths(self):
+        scenario = self.get_longest_weight_in_scenario()
+        for item in nx.shortest_simple_paths(self.nxgraph, self.start_node, self.end_node, scenario):
+            yield self.nodes_to_path(item)
+
+    def get_shortest_path(self, scenario: T.Optional[T.Sequence[float]] = None):
+        return next(self.get_shortest_paths(scenario))
 
     def get_paths(self):
         for item in nx.all_simple_paths(self.nxgraph, self.start_node, self.end_node):
             yield self.nodes_to_path(item)
 
     def get_all_scenarios(self):
-        if len(self.graph.nodes) > 7:
-            logger.warning("Ławryn mówił, że to może długo zająć D:")
-
         n_edges = len(self.graph.edges)
 
         for iteration in range(2**n_edges):
@@ -105,9 +125,10 @@ class RegretSolver:
     def generate_random_scenarios(self):
         n_edges = len(self.graph.edges)
         possibilities = (0, 1)
-        max_to_generate = round(np.power(n_edges, 4 / 5))
+        # max_to_generate = round(np.power(n_edges, 4 / 5))
+        max_to_generate = n_edges
 
-        for i_scenario in range(max_to_generate):
+        for _ in range(max_to_generate):
             yield tuple(
                 self.edges_bimap[i].possible_length[mask]
                 for i, mask in enumerate(np.random.choice(possibilities, n_edges))
@@ -129,8 +150,9 @@ class RegretSolver:
         for i in range(iterations):
             temperature = scheduler(i)
             new = generate_similiar(current)
-            length_delta = path_length(new) - path_length(current)
-            if length_delta < 0 or (np.random.random() > (np.exp(-1 * length_delta / temperature))):
+            # new = self.generate_random_path(self.start_node, self.end_node, set())
+            length_delta = path_length(current) - path_length(new)
+            if length_delta > 0 or (np.random.random() < (np.exp(length_delta / temperature))):
                 current = new
         return current
 
@@ -141,8 +163,8 @@ class RegretSolver:
         path = []
         i = 0
         while not done:
-            if i > 10:
-                raise KeyError("no solutions found")
+            if i > 100:
+                raise AttributeError("no solutions found")
             current_node = start
             path: T.Sequence["NDEdge"] = []
             curr_visited = set(visited)
@@ -164,12 +186,14 @@ class RegretSolver:
         return path
 
     def sa_generate_similar_path(self, path: T.Sequence["NDEdge"]):
-        subpath_start, subpath_end = sorted(np.random.choice(len(path) - 1, 2, False))
         try:
+            subpath_start, subpath_end = sorted(np.random.choice(len(path) - 3, 2, False) + 2)
             path_to_node = self.path_to_nodes(path)
-            insert_path = self.generate_random_path(
-                path_to_node[subpath_start], path_to_node[subpath_end], set(path_to_node[:subpath_start])
-            )
-        except KeyError:
+            insert = self.generate_random_path(path_to_node[subpath_start - 1], path_to_node[subpath_end - 1], set())
+        except AttributeError:
+            logger.warning("Couldn't generate")
             return path
-        return self.nodes_to_path(path_to_node[:subpath_start] + insert_path + path_to_node[subpath_end:])
+        except ValueError:
+            logger.warning("Value error")
+            return path
+        return path[: subpath_start - 1] + insert + path[subpath_end - 1 :]  # noqa: E203
