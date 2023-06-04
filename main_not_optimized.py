@@ -33,7 +33,7 @@ print(f"Path normal min/max = {sum([i.min_length for i in best_path])}/{sum([i.m
 
 print("Small done")
 
-graph = NDGraph.watts_strogatz(40, 1, 1, 3)
+graph = NDGraph.watts_strogatz(40, 1, 1, 5)
 w_start = graph.nodes["0"]
 w_end = graph.nodes["20"]
 solver = s.RegretSolver(graph, w_start, w_end)

@@ -122,11 +122,19 @@ class RegretSolver:
         for iteration in range(2**path_length):
             yield tuple(path[i].possible_length[~bool(iteration & (2**i))] for i in range(path_length))
 
+    def get_best_scenario(self, path: T.Sequence["NDEdge"]):
+        path_length = len(path)
+        return tuple(path[i].min_length for i in range(path_length))
+
+    def get_worst_scenario(self, path: T.Sequence["NDEdge"]):
+        path_length = len(path)
+        return tuple(path[i].max_length for i in range(path_length))
+
     def generate_random_scenarios(self):
         n_edges = len(self.graph.edges)
         possibilities = (0, 1)
         # max_to_generate = round(np.power(n_edges, 4 / 5))
-        max_to_generate = 10 * n_edges
+        max_to_generate = n_edges
 
         for _ in range(max_to_generate):
             yield tuple(
