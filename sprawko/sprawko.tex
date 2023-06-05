@@ -19,6 +19,12 @@
 \pagestyle{fancy}
 \def\nl{\\\hline}
 
+\def\fsim{f^\sim(x_s)}
+\def\fplu{f^+(x_s)}
+\def\fmin{f^-(x_s)}
+\def\fraw{f(x_s)}
+\def\fide{f(x_s^*)}
+
 \begin{document}
 \begin{titlepage}
   \begin{center}
@@ -46,62 +52,65 @@
     kierunek: \textbf{Inżynieria systemów}
 
     \vspace*{\fill}
-    \Large \textit{30 maja 2023}
+    \Large \textit{04 czerwca 2023}
 
   \end{center}
 \end{titlepage}
 
 \begin{abstract}
-  W ramach projektu przeprowadzono porównanie skuteczności algorytmów min-max oraz min-max z żalem w celu znalezienia najkrószej ścieżki między dwoma wierzchołkami w grafie nieskierowanym, gdzie długość krawędzi podana jest jako możliwy zakres w postaci rozkładu równomiernego. Algorytm podczas szukania najlepszej ścieżki ma wgląd tylko w informację o minimum i maksimum z rozkładu.
+  W ramach projektu przeprowadzono porównanie skuteczności algorytmów min-max oraz min-max z żalem w celu znalezienia najkrószej ścieżki między dwoma wierzchołkami w grafie nieskierowanym, gdzie długość krawędzi podana jest jako możliwy zakres w postaci rozkładu równomiernego. Zaprezentowano trzy podejścia dla szukania ścieżki metodą klasyczną. Przy małych, rzadkich, grafach o mało zróżnicowanych długościach krawędzi okazuje się, że wykorzystanie żalu zachowuje się podobnie do innych metod, a w przypadku dużych z wysokim zróżnicowaniem widać różnicę.
 \end{abstract}
 
 \section{Wstęp -- opis problemu}
 \label{sec:wstep}
 Optymalizacja jest aktualnie dziedziną na której polega cały świat. Pozwala ona na przykładowo minimalizację kosztów prowadzenia działalności poprzez lepszy dobór dostawców czy też zmniejszanie czasu potrzebnego na wykonanie skomplikowanych procesów poprzez ich lepsze kolejkowanie. Znalezienie dobrego sposobu na optymalizację danego procesu, w szczególności w zmiennych warunkach, może mówić o istnieniu danego podmiotu na rynku.
 
-Optymalizacja procesów w przypadku gdzie dany proces ma z góry określone zmienne nie jest żadnym problemem. Istnieje bardzo dużo różnych algrytmów dla różnych problemów które bardzo dobrze sobie radzą z optymalizacją takich zadań. Problem pojawia się jednak gdy w optymalizacji mamy do czynienia ze zmienną, która może przyjąć pewien zakres wartości. Gotowe algorytmy mogą radzić sobie z szukaniem takich rozwiązań, ale w żaden sposób nie korzystamy z informacji o szerokości rozkładu, co może przekładać się na gorsze wyniki.
+Optymalizacja procesów w przypadku gdzie dany proces ma z góry określone zmienne nie jest żadnym problemem. Istnieje bardzo dużo różnych algrytmów dla różnych problemów, które bardzo dobrze sobie radzą z optymalizacją takich zadań. Problem pojawia się jednak gdy w optymalizacji mamy do czynienia ze zmienną, która może przyjąć pewien zakres wartości. Gotowe algorytmy mogą radzić sobie z szukaniem takich rozwiązań, ale w żaden sposób nie korzystamy z informacji o szerokości rozkładu, co może przekładać się na gorsze wyniki.
 
 Celem sprawozdania jest przeprowadzenie analizy oraz opisanie wyników działania algorytmów min-max oraz min-max regret dla problemu szukania ścieżki pomiędzy dwoma wierzchołkami w nieskierowanym grafie, gdzie długości krawędzi dane są w postaci możliwych zakresów dodatnich wartości przedstawiających rozkład równomierny.
 
 \section{Definicja problemu}
-Znając aktualny scenariusz $s \in S$ określony za pomocą informacji o nieskierowanym grafie wejściowym $G = (V, E)$ oraz zakresach odległości
-\begin{eqnarray*}
-  s = E \rightarrow \left\{e \in (o^-,  o^+): 0 < o^- \leq o^+ < \infty\right\},
-\end{eqnarray*}
+Znając graf $G = (V, E)$, aktualny scenariusz $s \in S$ określony za pomocą informacji o długości każdej krawędzi pochodzący ze zbioru każdej możliwości kombinacji długości krawędzi,
+\begin{gather*}
+  s_{e_n} = \left(e_n \in \left\{o^-_e, o^+_e\right\}:\ 0 < o^-_e \leq o^+_e < \infty\right);\ n = 1,\ 2,\ \dots,\ |E|, \\
+  S = s_{e_1} \times s_{e_2} \times \dots \times s_{e_{\left|E\right|}},
+  % S = \binom{\left\{s_{e_1}, s_{e_2}, \dots, s_{e_{\left|E\right|}}\right\}}{2},
+\end{gather*}
 
-szukamy takiego rozwiązania $x = \left(e_1, e_2, \dots, e_n\right)$, $x \in X$ które będzie minimalizować długość trasy od źródła do celu, $v_{start}$ do $v_{koniec}$, którą możemy zdefiniować jako:
+\noindent
+szukamy takiego rozwiązania $x = \left(e_1, e_2, \dots, e_n\right)$, $x \in X$ które będzie minimalizować wartość funkcji żalu dla trasy od źródła do celu, $v_{start}$ do $v_{koniec}$, którą możemy zdefiniować jako:
 \begin{equation}
-  \min_{e \in x} \sum_{i=1}^{n} s_x,
+  \min_{x \in X}\max_{s \in S} \fraw - \fide
 \end{equation}
 
-Korzystając z tych definicji możemy okreslić dwa różne podejścia optymalizacyjne, jedno klasyczne korzystające z samej informacji o aktualnej trasie oraz drugie, korzystające z funkcji żalu do określenia najlepszej trasy.
+Korzystając z tych definicji możemy okreslić dwa różne podejścia optymalizacyjne, jedno klasyczne korzystające z samej informacji o aktualnej trasie oraz drugie, podane wyżej, korzystające z funkcji żalu.
 
 \subsection{Min-max}
-Dla danego rozwiązania $x \in X$ i danego scenariusza $s \in S$ możemy określić pewną funkcję $val(x, s)$ oceniającą jak dobre jest dane rozwiązanie. Funckja ta będzie sumą pewnej długości opisującej daną ścieżkę. Dla danej trasy możemy rozpatrywać trzy różne wartości, są to: wartość oczekiwana danej trasy, teoretycznie minimalna i teoretycznie maksymalna długość trasy.
+Dla danego rozwiązania $x \in X$ i danego scenariusza $s \in S$ możemy określić pewną funkcję $f(x_s)$ oceniającą jak dobre jest dane rozwiązanie przy danym scenariuszu. Funkcja ta będzie sumą pewnej długości opisującej daną ścieżkę. Dla danej trasy możemy rozpatrywać trzy różne wartości, są to: wartość oczekiwana danej trasy, teoretycznie minimalna i teoretycznie maksymalna długość trasy.
 
 \begin{eqnarray}
-  {val}^\sim(x, s) = \sum_{e \in x}& \frac{1}{2}\left(s_e^+ +  s_e^-\right), \\
-  {val}^+(x, s) =    \sum_{e \in x}& s_e^+, \\
-  {val}^-(x, s) =    \sum_{e \in x}& s_e^-
+  \fsim = \sum_{e \in x}& \frac{1}{2}\left(s_e^+ +  s_e^-\right), \\
+  \fplu = \sum_{e \in x}& s_e^+, \\
+  \fmin = \sum_{e \in x}& s_e^-
 \end{eqnarray}
 \begin{equation}
-  \min_{x \in X} \max_{s \in S} val(x, s)
+  \min_{x \in X} \max_{s \in S} \fraw
 \end{equation}
 
 \subsection{Min-max regret}
-Metoda min-max z żalem jest bardzo podobna do tej metody bez. Różnica to wprowadzenie pewnego dodatkowego elementu określanego jako żal $val^*_s$, który zamienia nam wartość liczonej funkcji z samej odległości między wierzchołkami na odchylenie od najlepszego możliwego rozwiązania dla danego scenariusza, definiowanej jako optymalne rozwiązanie w scenariuszu $s$.
+Metoda min-max z żalem jest bardzo podobna do tej metody bez. Różnica to wprowadzenie pewnego dodatkowego elementu określanego jako żal $\fide$, który zamienia nam wartość liczonej funkcji z samej odległości między wierzchołkami na odchylenie od najlepszego możliwego rozwiązania dla danego scenariusza, definiowanej jako optymalne rozwiązanie w scenariuszu $s$.
 
 Bardzo często zdarza się sytuacja, że samo określenie teoretycznie najlepszej ścieżki jest bardzo trudne, więc w praktyce często korzysta się w tym miejscu z pewnego oszacowania, najczęściej z relaksacji. W przypadku małych grafów $|E| \ll 50$ w celu znalezienia najlepszej wartości można wykonać przegląd zupełny.
 
 \begin{equation}
-  \min_{x \in X} \max_{s \in S} val(x, s) - val^*_s
+  \min_{x \in X} \max_{s \in S} \fraw - \fide
 \end{equation}
 
 \subsection{Przykład}
 Rozpatrzmy prosty przykład aby zobrazować różnice między każdym z podejść. Do tego celu skorzystajmy z prostego grafu znajdującego się na rysunku (\ref{fig:example}), gdzie na każdej z krawędzi zaznaczono możliwe rozkłady.
 \begin{center}
   \includegraphics[width=\linewidth]{figures/example.pdf}
-  \captionof{figure}{Przykładowy graf gdzie wierzchołek 0 to $v_{start}$, a wierzchołek 6 to $v_{koniec}$}
+  \captionof{figure}{Przykładowy graf gdzie wierzchołek 0 to $v_{start}$, a wierzchołek 6 to $v_{koniec}.$}
   \label{fig:example}
 \end{center}
 
@@ -110,22 +119,22 @@ Podejście bez żalu, w zależności od rozpatrywanej metody w przypadku tego gr
   \captionof{table}{Tabela zawierająca ścieżki, wartości funkcji $val(x, s)$, minimum oraz maksimum dla każdej z metod}
   \begin{tabular}{|c|c|c|c|c|}
     \hline
-    $f$          & Ścieżka   & $f(x)$ & min & max  \\ \hline
-    ${val}^\sim$ & (0, 4, 6) & 34     & 24  & 44   \\ \hline
-    ${val}^-$    & (0, 2, 6) & 22     & 22  & 2402 \\ \hline
-    ${val}^+$    & (0, 5, 6) & 43     & 41  & 43   \\ \hline \hline
-    $val^*_s$    & (0, 4, 6) & 14     & 24  & 44   \\ \hline
+    $f$     & Ścieżka   & $f(x)$ & min & max  \nl
+    $\fsim$ & (0, 4, 6) & 34     & 24  & 44   \nl
+    $\fmin$ & (0, 2, 6) & 22     & 22  & 2402 \nl
+    $\fplu$ & (0, 5, 6) & 43     & 41  & 43   \nl
+    $\fide$ & (0, 4, 6) & 14     & 24  & 44   \nl
   \end{tabular}
   \label{tab:example_paths}
 \end{center}
-Nawet na tak prostym przykładzie widać pewne różnice, każdego z tych podejść. Szukanie po wartości minimalnej, może wpaść w takie rozwiązanie, w którym może i minimalna wartość ścieżki jest bardzo niska, ale wartość w najgorszym wypadku może mieć bardzo słabe konsekwencje. Tak samo dla przypadku z szukaniem po najgorszym możliwym przypadku. Przyjmowanie każdego rozwiązania, pod warunkiem że wartość maksymalna lekko spada może sprawić, że wartość minimalna może być bardzo wysoka co również może skutkować słabym rzeczywistym wynikiem.
+Nawet na tak prostym przykładzie widać pewne różnice, każdego z tych podejść. Szukanie po wartości minimalnej, może wpaść w takie rozwiązanie, w którym minimalna wartość ścieżki jest bardzo niska, ale wartość w najgorszym wypadku może mieć bardzo słabe konsekwencje. Tak samo dla przypadku z szukaniem po najgorszym możliwym przypadku. Przyjmowanie każdego rozwiązania, pod warunkiem że wartość maksymalna lekko spada może sprawić, że wartość minimalna może być bardzo wysoka co również może skutkować słabym rzeczywistym wynikiem.
 
 W tym przypadku, optymalizowanie po wartości oczekiwanej ścieżki jak i po wartości pochodzącej z funkcji żalu daje takie same wyniki, widać pewną różnice w ich zachowaniu po samej wartości funkcji, co może nam sugerować, że dla większych przypadków rozwiązania na które te podejścia wskazują, mogą być zgoła inne.
 
 \section{Badania}
 Analizę przeprowadzono na dwóch obszarach, w pierwszym z nich skorzystano z przeglądu zupełnego dla małych grafów $|E| < 40$, w drugim $|E| < 1000$. W drugim pojdeściu skorzystano z pewnej heurestyki, w której przeglądano tylko część wszystkich możliwych rozwiązań w celu optymalizacji, które zostały wcześniej wybrane jako quasioptymalne. W dużych grafach tylko takie podejście jest możliwe, ze względu na wysoką złożoność czasową algorytmów potrzebnych do policzenia każdej możliwej ścieżki w każdym możliwym scenariuszu.
 
-Każdy wygenerowany graf stworzony jest na zasadzie pierścienia, gdzie każdy wierzchołek połączony jest z $K$ sąsiadami po jego "prawej" i "lewej" stronie ($|E| = K \times |V|$), a początek i koniec trasy, znajdują się po wzajemnej przekątnej tak aby wszystkie najkrótsze trasy w ilościach krawędzi były sobie równe, ale zawsze była ewentualna możliwość przeskoku do następnego wierzchołka inną trasą. Wygenerowane długości pomiędzy każdym z wierzchołków pochodzą z rozkładu równomiernego ($\left(o^-,  o^+\right);\ 0 < o^- < o^+ < P$) i dla każdego nowego grafu są generowane od nowa. Każdy z grafów można opisać tymi trzema wartościami $G \leftarrow (K, |V|, P)$.
+Każdy wygenerowany graf stworzony jest na zasadzie pierścienia, gdzie każdy wierzchołek połączony jest z $K$ sąsiadami po jego "prawej" i "lewej" stronie ($|E| = K \times |V|$), a początek i koniec trasy, znajdują się po wzajemnej przekątnej tak aby wszystkie najkrótsze trasy w ilościach krawędzi były sobie równe, ale zawsze była ewentualna możliwość przeskoku do następnego wierzchołka inną trasą. Wygenerowane długości pomiędzy każdym z wierzchołków pochodzą z rozkładu równomiernego ($\left(o^-,  o^+\right);\ 0 < o^- < o^+ < P$) i dla każdego nowego grafu są generowane od nowa. Każdy z grafów można opisać tymi trzema wartościami $G \rightarrow (K, |V|, P)$.
 
 \subsection{Przegląd zupełny}
 W tabeli (\ref{tab:all}) pokazano wyniki przeglądu zupełnego dla grafów z 10, 12, 14, 16, 18 i 20 wierzchołkami dla grafów $(2, x, 1)$.
@@ -134,127 +143,127 @@ W tabeli (\ref{tab:all}) pokazano wyniki przeglądu zupełnego dla grafów z 10,
   \captionof{table}{Tabela zawierająca minimum oraz maksimum dla każdej z metod w danym grafie.}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 10, 1\right)$} \\ \hline
-    $f$          & min  & max   \\ \hline
-    $val^*_s$    & 0.43 & 2.33  \\ \hline
-    ${val}^-$    & 0.43 & 2.33  \\ \hline
-    ${val}^+$    & 0.6  & 1.66  \\ \hline
-    ${val}^\sim$ & 0.6  & 1.66  \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 10, 1\right)$} \nl
+    $f$     & min  & max   \nl
+    $\fsim$ & 0.43 & 2.33  \nl
+    $\fmin$ & 0.43 & 2.33  \nl
+    $\fplu$ & 0.6  & 1.66  \nl
+    $\fide$ & 0.6  & 1.66  \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 12, 1\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 1.11 & 2.74 \\ \hline
-    ${val}^-$    & 1.11 & 2.74 \\ \hline
-    ${val}^+$    & 1.73 & 2.18 \\ \hline
-    ${val}^\sim$ & 1.39 & 2.39 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 12, 1\right)$} \nl
+    $f$     & min  & max  \nl
+    $\fsim$ & 1.11 & 2.74 \nl
+    $\fmin$ & 1.11 & 2.74 \nl
+    $\fplu$ & 1.73 & 2.18 \nl
+    $\fide$ & 1.39 & 2.39 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 14, 1\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 0.74 & 3.26 \\ \hline
-    ${val}^-$    & 0.74 & 3.26 \\ \hline
-    ${val}^+$    & 1.5  & 2.52 \\ \hline
-    ${val}^\sim$ & 0.8  & 3.12 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 14, 1\right)$} \nl
+    $f$     & min  & max  \nl
+    $\fsim$ & 0.74 & 3.26 \nl
+    $\fmin$ & 0.74 & 3.26 \nl
+    $\fplu$ & 1.5  & 2.52 \nl
+    $\fide$ & 0.8  & 3.12 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 16, 1\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 0.66 & 3.18 \\ \hline
-    ${val}^-$    & 0.66 & 3.18 \\ \hline
-    ${val}^+$    & 1.96 & 2.72 \\ \hline
-    ${val}^\sim$ & 0.66 & 3.18 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 16, 1\right)$} \nl
+    $f$     & min  & max  \nl
+    $\fsim$ & 0.66 & 3.18 \nl
+    $\fmin$ & 0.66 & 3.18 \nl
+    $\fplu$ & 1.96 & 2.72 \nl
+    $\fide$ & 0.66 & 3.18 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 18, 1\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 1.34 & 2.57 \\ \hline
-    ${val}^-$    & 1.34 & 2.57 \\ \hline
-    ${val}^+$    & 1.34 & 2.57 \\ \hline
-    ${val}^\sim$ & 1.34 & 2.57 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 18, 1\right)$} \nl
+    $f$     & min  & max  \nl
+    $\fsim$ & 1.34 & 2.57 \nl
+    $\fmin$ & 1.34 & 2.57 \nl
+    $\fplu$ & 1.34 & 2.57 \nl
+    $\fide$ & 1.34 & 2.57 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 20, 1\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 0.86 & 2.3  \\ \hline
-    ${val}^-$    & 0.65 & 3.35 \\ \hline
-    ${val}^+$    & 0.86 & 2.3  \\ \hline
-    ${val}^\sim$ & 0.86 & 2.3  \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(2, 20, 1\right)$} \nl
+    $f$     & min  & max  \nl
+    $\fsim$ & 0.86 & 2.3  \nl
+    $\fmin$ & 0.65 & 3.35 \nl
+    $\fplu$ & 0.86 & 2.3  \nl
+    $\fide$ & 0.86 & 2.3  \nl
   \end{tabular}
   \\\label{tab:all}
 \end{center}
-Zauważyć można, że w przypadku małych grafów rzadkich, gdzie jest mało najkrótszych ścieżek i nie jest wysoka różnica między najlepszym a najgorszym scenariuszem, optymalizacja za pomcą funkcji żalu daje takie same wyniki jak inne algorytmy.
+Zauważyć można, że w przypadku małych grafów rzadkich, gdzie jest mało najkrótszych ścieżek i nie jest wysoka różnica między najlepszym a najgorszym scenariuszem, optymalizacja za pomcą funkcji żalu daje, w większości przypadków, takie same wyniki jak inne algorytmy.
 
 \subsection{Heurestyka}
-W metodzie heurestycznej wykorzystano dwa uproszczenia, które zdecydowanie skracają przeszukiwanie grafu, ale mogą nie znajdywać optymalnego rozwiązania, lecz inne do niego zbliżone. Oba tyczą się ograniczenia obszaru przeszukiwania i polegają na wcześniejszym wygenerowaniu mniejszej ilości scenariuszy do przeszukiwania i na ich podstawie wygenerowanie najkrótszych ścieżek, będzie się to objawiać szukaniem  W tabeli (\ref{tab:some}) zamieszczono wyniki przeszukiwania grafów z 50, 70, 90, 110, 130 i 150 wierzchołkami w kombinacji $(5, x, 5)$
+W metodzie heurestycznej wykorzystano dwa uproszczenia, które zdecydowanie skracają czas przeszukiwania grafu, ale mogą nie znajdywać optymalnego rozwiązania, lecz inne do niego zbliżone. Oba tyczą się ograniczenia obszaru przeszukiwania i polegają na wcześniejszym wygenerowaniu mniejszej ilości scenariuszy do przeszukiwania i na ich podstawie wygenerowanie najkrótszych ścieżek. Będzie się to objawiać szybszym wykonywaniem algorytmu, lecz mniej celnym. W tabeli (\ref{tab:some}) zamieszczono wyniki przeszukiwania grafów z 50, 70, 90, 110, 130 i 150 wierzchołkami w kombinacji $(5, x, 5)$
 
-\filbreak
 \begin{center}
   \captionof{table}{Tabela zawierająca minimum oraz maksimum dla każdej z metod w danym grafie.}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 50, 5\right)$} \\ \hline
-    $f$          & min  & max   \\ \hline
-    $val^*_s$    & 6.26 & 11.6  \\ \hline
-    ${val}^-$    & 2.64 & 15.46 \\ \hline
-    ${val}^+$    & 6.26 & 11.6  \\ \hline
-    ${val}^\sim$ & 4.08 & 13.59 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 50, 5\right)$} \nl
+    $f$     & min  & max   \nl
+    $\fsim$ & 6.26 & 11.6  \nl
+    $\fmin$ & 2.64 & 15.46 \nl
+    $\fplu$ & 6.26 & 11.6  \nl
+    $\fide$ & 4.08 & 13.59 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 70, 5\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 5.46 & 14.24 \\ \hline
-    ${val}^-$    & 3.73 & 18.56 \\ \hline
-    ${val}^+$    & 6.83 & 13.2 \\ \hline
-    ${val}^\sim$ & 4.56 & 14.83 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 70, 5\right)$} \nl
+    $f$     & min  & max   \nl
+    $\fsim$ & 5.46 & 14.24 \nl
+    $\fmin$ & 3.73 & 18.56 \nl
+    $\fplu$ & 6.83 & 13.2  \nl
+    $\fide$ & 4.56 & 14.83 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 90, 5\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 6.41 & 20.45 \\ \hline
-    ${val}^-$    & 4.51 & 22.51 \\ \hline
-    ${val}^+$    & 5.25 & 19.61 \\ \hline
-    ${val}^\sim$ & 5.25 & 19.61 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 90, 5\right)$} \nl
+    $f$     & min  & max   \nl
+    $\fsim$ & 6.41 & 20.45 \nl
+    $\fmin$ & 4.51 & 22.51 \nl
+    $\fplu$ & 5.25 & 19.61 \nl
+    $\fide$ & 5.25 & 19.61 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 110, 5\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 8.03 & 27.52 \\ \hline
-    ${val}^-$    & 4.68 & 41.38 \\ \hline
-    ${val}^+$    & 13.4 & 24.31 \\ \hline
-    ${val}^\sim$ & 8.92 & 26.24 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 110, 5\right)$} \nl
+    $f$     & min  & max   \nl
+    $\fsim$ & 8.03 & 27.52 \nl
+    $\fmin$ & 4.68 & 41.38 \nl
+    $\fplu$ & 13.4 & 24.31 \nl
+    $\fide$ & 8.92 & 26.24 \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 130, 5\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 9.81 & 35.27 \\ \hline
-    ${val}^-$    & 6.23 & 66.08 \\ \hline
-    ${val}^+$    & 12.32 & 29.32 \\ \hline
-    ${val}^\sim$ & 11.0 & 30.52 \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 130, 5\right)$} \nl
+    $f$     & min  & max    \nl
+    $\fsim$ & 9.81 & 35.27  \nl
+    $\fmin$ & 6.23 & 66.08  \nl
+    $\fplu$ & 12.32 & 29.32 \nl
+    $\fide$ & 11.0 & 30.52  \nl
   \end{tabular}
   \begin{tabular}{|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|C{0.08\linewidth}|}
     \hline
-    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 150, 5\right)$} \\ \hline
-    $f$          & min  & max  \\ \hline
-    $val^*_s$    & 11.78 & 36.32  \\ \hline
-    ${val}^-$    & 7.54 & 67.79 \\ \hline
-    ${val}^+$    & 13.77 & 31.9  \\ \hline
-    ${val}^\sim$ & 10.52 & 33.3  \\ \hline
+    \multicolumn{3}{|c|}{$G \rightarrow \left(5, 150, 5\right)$} \nl
+    $f$     & min  & max     \nl
+    $\fsim$ & 11.78 & 36.32  \nl
+    $\fmin$ & 7.54  & 67.79  \nl
+    $\fplu$ & 13.77 & 31.9   \nl
+    $\fide$ & 10.52 & 33.3   \nl
   \end{tabular}
   \\\label{tab:some}
 \end{center}
+\filbreak
 
 \section{Wnioski}
-Optymalizowanie za pomocą funkcji żalu pozwala nam minimalizować ewentualne złe skutki wybrania jednej metody względem drugiej, może być to potrzebne w przypadkach gdzie równie ważne są najgorsze i najlepsze możliwości tak jak np. w inwestowaniu czy bankowości gdzie każda możliwość jest niewiadomą. Zdarza się, że w pewnych warunkach znalezione rozwiązanie nie jest takie jakiego można się spodziewać i inne metody dorównują jakością, lecz nie mamy pewności w żadnej innej, że rozwiązanie które znajdziemy nie bierze pod uwage różnicy między najlepszym a najgorszym możliwym scenariuszem.
+Optymalizowanie za pomocą funkcji żalu pozwala nam minimalizować ewentualne złe skutki wybrania jednej metody względem drugiej, może być to potrzebne w przypadkach, gdzie równie ważne są najgorsze i najlepsze możliwości tak jak np. w inwestowaniu czy bankowości, gdzie każda możliwość jest niewiadomą. Zdarza się, że w pewnych warunkach znalezione rozwiązanie nie jest takie jakiego można się spodziewać i inne metody dorównują jakością, lecz nie mamy pewności w żadnej innej, że rozwiązanie które znajdziemy nie bierze pod uwage różnicy między najlepszym a najgorszym możliwym scenariuszem.
 
 \newpage
 \appendix
@@ -274,5 +283,4 @@ Kody źródłowe umieszczone zostały w repozytorium GitHub:
     Greedy Heuristics with Regret, with Application to the Cheapest Insertion Algorithm for the TSP
 
 \end{thebibliography}
-
 \end{document}
