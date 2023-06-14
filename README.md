@@ -1,9 +1,7 @@
-# nondeterministic-regret-path
+# Projekt na kurs Systemy Inteligentne
 
-https://hal.science/hal-00158652/document
+Sprawozdanie w przeglądarce Githubowej znaduje się: [tutaj](https://github.com/mlodybercik/nondeterministic-regret-path/blob/main/sprawko/sprawko.pdf), a w pobieralnej postaci: [tutaj](https://github.com/mlodybercik/nondeterministic-regret-path/raw/main/sprawko/sprawko.pdf)
 
-http://www.math.tau.ac.il/~hassin/tsp_regret.pdf
-
-/10.1287/mnsc.1090.1097
-
-/10.1109/ISADS.2013.6513428
+## Streszczenie
+W ramach projektu przeprowadzono porównanie skuteczności algorytmów min-max oraz min-max z żalem w celu znalezienia najkrószej ścieżki między dwoma wierzchołkami w grafie nieskierowanym, gdzie długość krawędzi podana jest jako możliwy zakres w postaci rozkładu
+równomiernego. Zaprezentowano trzy podejścia dla szukania ścieżki metodą klasyczną. Przy małych, rzadkich, grafach o mało zróżnicowanych długościach krawędzi okazuje się, że wykorzystanie żalu zachowuje się podobnie do innych metod, a w przypadku dużych z wysokim zróżnicowaniem widać różnicę.
